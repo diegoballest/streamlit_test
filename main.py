@@ -66,87 +66,92 @@ if archivo is not None:
             except Exception as e:
                 st.error(f"Error al filtrar fechas: {e}")
 
+                # =========================
+        # 📞 FILTROS DE COMUNICACIÓN
         # =========================
-        # 📞 FILTRO POR TELÉFONO
-        # =========================
-        st.subheader("📞 Filtro por número telefónico")
+        st.subheader("📞 Filtros de comunicación")
 
-        usar_filtro_telefono = st.checkbox("Activar filtro por número telefónico")
+        usar_filtros_comunicacion = st.checkbox("Activar filtros de comunicación")
 
-        if usar_filtro_telefono:
-            tel_col1, tel_col2 = st.columns(2)
+        if usar_filtros_comunicacion:
 
-            telefono_origen_col = tel_col1.selectbox(
-                "Columna de número origen",
+            # =========================
+            # 📱 COLUMNAS
+            # =========================
+            col1, col2, col3 = st.columns(3)
+
+            telefono_origen_col = col1.selectbox(
+                "Número origen",
                 df_filtrado.columns,
                 key="telefono_origen_col"
             )
 
-            telefono_destino_col = tel_col2.selectbox(
-                "Columna de número destino",
+            telefono_destino_col = col2.selectbox(
+                "Número destino",
                 df_filtrado.columns,
                 key="telefono_destino_col"
             )
 
+            tipo_com_col = col3.selectbox(
+                "Tipo de comunicación",
+                df_filtrado.columns,
+                key="tipo_com_col"
+            )
+
+            # =========================
+            # 🔎 FILTRO TELÉFONO
+            # =========================
             opcion_filtro_tel = st.radio(
-                "Modo de filtro",
+                "Filtro de número",
                 ["Buscar por texto", "Seleccionar números"],
                 horizontal=True,
                 key="modo_tel"
             )
 
             if opcion_filtro_tel == "Buscar por texto":
-                texto_tel = st.text_input(
-                    "Escribe el número o parte del número",
-                    key="texto_tel"
-                )
+                texto_tel = st.text_input("Buscar número")
 
                 if texto_tel:
-                    mask_origen = (
-                        df_filtrado[telefono_origen_col]
-                        .astype(str)
-                        .str.contains(texto_tel, case=False, na=False)
-                    )
-
-                    mask_destino = (
-                        df_filtrado[telefono_destino_col]
-                        .astype(str)
-                        .str.contains(texto_tel, case=False, na=False)
-                    )
+                    mask_origen = df_filtrado[telefono_origen_col].astype(str).str.contains(texto_tel, na=False)
+                    mask_destino = df_filtrado[telefono_destino_col].astype(str).str.contains(texto_tel, na=False)
 
                     df_filtrado = df_filtrado[mask_origen | mask_destino]
 
             else:
-                numeros_origen = (
-                    df_filtrado[telefono_origen_col]
-                    .dropna()
-                    .astype(str)
-                    .unique()
-                    .tolist()
-                )
+                numeros = sorted(list(set(
+                    df_filtrado[telefono_origen_col].astype(str).dropna().tolist() +
+                    df_filtrado[telefono_destino_col].astype(str).dropna().tolist()
+                )))
 
-                numeros_destino = (
-                    df_filtrado[telefono_destino_col]
-                    .dropna()
-                    .astype(str)
-                    .unique()
-                    .tolist()
-                )
+                seleccion = st.multiselect("Selecciona números", numeros)
 
-                valores_telefono = sorted(list(set(numeros_origen + numeros_destino)))
-
-                telefonos_seleccionados = st.multiselect(
-                    "Selecciona uno o varios números",
-                    options=valores_telefono,
-                    key="telefonos_sel"
-                )
-
-                if telefonos_seleccionados:
-                    mask_origen = df_filtrado[telefono_origen_col].astype(str).isin(telefonos_seleccionados)
-                    mask_destino = df_filtrado[telefono_destino_col].astype(str).isin(telefonos_seleccionados)
+                if seleccion:
+                    mask_origen = df_filtrado[telefono_origen_col].astype(str).isin(seleccion)
+                    mask_destino = df_filtrado[telefono_destino_col].astype(str).isin(seleccion)
 
                     df_filtrado = df_filtrado[mask_origen | mask_destino]
 
+            # =========================
+            # 📡 FILTRO TIPO COMUNICACIÓN
+            # =========================
+            tipos_disponibles = (
+                df_filtrado[tipo_com_col]
+                .dropna()
+                .astype(str)
+                .unique()
+                .tolist()
+            )
+
+            tipos_seleccionados = st.multiselect(
+                "Tipo de comunicación",
+                options=tipos_disponibles,
+                default=tipos_disponibles
+            )
+
+            if tipos_seleccionados:
+                df_filtrado = df_filtrado[
+                    df_filtrado[tipo_com_col].astype(str).isin(tipos_seleccionados)
+                ]
         # =========================
         # 📊 RESUMEN DEL DATASET FILTRADO
         # =========================
